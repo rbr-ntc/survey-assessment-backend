@@ -197,7 +197,7 @@ async def generate_recommendations_content(
 """
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-    # Using client.responses.create for gpt-5.2-mini model as originally implemented
+    # Using Responses API with GPT-5 family models (gpt-5.1, gpt-5-mini, gpt-5-nano)
     response = await client.responses.create(
         model=settings.OPENAI_MODEL,
         reasoning={"effort": settings.OPENAI_REASONING_EFFORT},
