@@ -17,8 +17,15 @@ class Settings(BaseSettings):
     @validator('POSTGRES_URL', pre=True, always=True)
     def auto_convert_database_url(cls, v):
         """Auto-convert Railway DATABASE_URL to POSTGRES_URL format"""
-        # If POSTGRES_URL is explicitly set, use it
+        # Normalize explicit POSTGRES_URL if provided (Railway users sometimes paste DATABASE_URL here)
         if v:
+            if isinstance(v, str):
+                if v.startswith("postgresql+asyncpg://"):
+                    return v
+                if v.startswith("postgresql://"):
+                    return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+                if v.startswith("postgres://"):
+                    return v.replace("postgres://", "postgresql+asyncpg://", 1)
             return v
         
         # Otherwise, try to convert DATABASE_URL from Railway
