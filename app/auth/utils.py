@@ -1,6 +1,7 @@
 """
 Authentication utilities: JWT tokens, password hashing, verification codes.
 """
+import base64
 import hashlib
 import random
 import secrets
@@ -13,33 +14,35 @@ from passlib.context import CryptContext
 from app.config import settings
 
 # Password hashing context
+# Use bcrypt with explicit backend to avoid initialization issues
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
     """
     Hash password using bcrypt.
-    For passwords longer than 72 bytes, pre-hash with SHA-256 to avoid bcrypt limitation.
+    For passwords longer than 72 bytes, pre-hash with SHA-256 + base64 to avoid bcrypt limitation.
+    Based on pyca/bcrypt documentation recommendation.
     """
-    # Bcrypt has a 72-byte limit. Pre-hash long passwords with SHA-256
+    # Bcrypt has a 72-byte limit. Pre-hash with SHA-256 + base64 as recommended by pyca/bcrypt
     password_bytes = password.encode('utf-8')
     
-    # Always pre-hash with SHA-256 to ensure consistent length and avoid bcrypt 72-byte limit
-    # This is safe because we're still using bcrypt on top, just with a fixed-length input
-    password_hash = hashlib.sha256(password_bytes).hexdigest()
+    # Pre-hash with SHA-256, then base64 encode (44 bytes, well under 72 limit)
+    # This is the recommended approach from pyca/bcrypt documentation
+    password_hash = base64.b64encode(hashlib.sha256(password_bytes).digest()).decode('utf-8')
     
-    # Now hash the SHA-256 hash with bcrypt (always 64 bytes, well under 72 limit)
+    # Now hash the pre-hashed password with bcrypt
     return pwd_context.hash(password_hash)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify password against hash.
-    Always pre-hash with SHA-256 to match hash_password behavior.
+    Always pre-hash with SHA-256 + base64 to match hash_password behavior.
     """
-    # Pre-hash with SHA-256 to match hash_password
+    # Pre-hash with SHA-256 + base64 to match hash_password
     password_bytes = plain_password.encode('utf-8')
-    pre_hashed = hashlib.sha256(password_bytes).hexdigest()
+    pre_hashed = base64.b64encode(hashlib.sha256(password_bytes).digest()).decode('utf-8')
     
     # Verify the pre-hashed password against the bcrypt hash
     return pwd_context.verify(pre_hashed, hashed_password)
