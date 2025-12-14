@@ -77,22 +77,23 @@ app.include_router(auth_router)
 async def startup_event():
     """Initialize database on startup"""
     try:
-        # Run migrations automatically (optional - can be done manually via Railway CLI)
-        # Uncomment if you want auto-migrations on startup
-        # try:
-        #     from alembic.config import Config
-        #     from alembic import command
-        #     alembic_cfg = Config("alembic.ini")
-        #     command.upgrade(alembic_cfg, "head")
-        #     logger.info("Migrations applied successfully")
-        # except Exception as migration_error:
-        #     logger.warning(f"Migrations not applied (this is OK if done manually): {migration_error}")
+        logger.info("Starting database initialization...")
+        logger.info(f"POSTGRES_URL configured: {bool(settings.POSTGRES_URL)}")
         
         # Initialize database (create tables if not exist)
+        # Note: This is a fallback - migrations should be run via Alembic in start.sh
         await init_db()
         logger.info("Database initialized successfully")
+        
+        # Test database connection
+        from app.db_postgres import AsyncSessionLocal
+        async with AsyncSessionLocal() as session:
+            from sqlalchemy import text
+            result = await session.execute(text("SELECT 1"))
+            logger.info("Database connection test successful")
     except Exception as e:
-        logger.error(f"Error initializing database: {e}")
+        logger.error(f"Error initializing database: {e}", exc_info=True)
+        # Don't raise - let the app start, but log the error
 
 
 @app.on_event("shutdown")
