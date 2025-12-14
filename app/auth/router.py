@@ -35,7 +35,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 # Dependency to extract token from header or cookie
 async def get_token(
     request: Request,
-    authorization: Optional[str] = None,
     access_token: Optional[str] = Cookie(None),
 ) -> Optional[str]:
     """
@@ -43,17 +42,13 @@ async def get_token(
     Priority: Authorization header > Cookie
     """
     # Try Authorization header first
-    if authorization and authorization.startswith("Bearer "):
-        return authorization.split(" ")[1]
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ")[1]
     
     # Fallback to cookie
     if access_token:
         return access_token
-    
-    # Try to get from request headers directly
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        return auth_header.split(" ")[1]
     
     return None
 
