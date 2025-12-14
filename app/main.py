@@ -2,13 +2,14 @@ import logging
 import os
 import time
 
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.auth import router as auth_router
 from app.config import settings
 from app.db_postgres import init_db
 from app.routers import questions, recommendations, results
-from dotenv import load_dotenv
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
