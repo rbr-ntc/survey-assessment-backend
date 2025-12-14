@@ -78,11 +78,15 @@ async def register(
         
         # Verify database connection
         from app.config import settings
-        if not settings.POSTGRES_URL:
-            logger.error("POSTGRES_URL is not configured!")
+        from app.db_postgres import get_engine
+        try:
+            engine = get_engine()
+            logger.debug("Database engine initialized successfully")
+        except ValueError as e:
+            logger.error(f"Database configuration error: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Database configuration error",
+                detail="Ошибка конфигурации базы данных. Обратитесь в поддержку.",
             )
         
         # Check if user already exists
