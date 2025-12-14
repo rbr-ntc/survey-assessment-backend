@@ -23,29 +23,26 @@ def hash_password(password: str) -> str:
     """
     # Bcrypt has a 72-byte limit. Pre-hash long passwords with SHA-256
     password_bytes = password.encode('utf-8')
-    if len(password_bytes) > 72:
-        # Pre-hash with SHA-256 to get fixed 32-byte output
-        password = hashlib.sha256(password_bytes).hexdigest()
     
-    return pwd_context.hash(password)
+    # Always pre-hash with SHA-256 to ensure consistent length and avoid bcrypt 72-byte limit
+    # This is safe because we're still using bcrypt on top, just with a fixed-length input
+    password_hash = hashlib.sha256(password_bytes).hexdigest()
+    
+    # Now hash the SHA-256 hash with bcrypt (always 64 bytes, well under 72 limit)
+    return pwd_context.hash(password_hash)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify password against hash.
-    Handles both regular bcrypt hashes and pre-hashed (SHA-256) passwords.
+    Always pre-hash with SHA-256 to match hash_password behavior.
     """
-    # Try direct verification first (for passwords <= 72 bytes)
-    if pwd_context.verify(plain_password, hashed_password):
-        return True
-    
-    # If direct verification fails and password is long, try pre-hashed version
+    # Pre-hash with SHA-256 to match hash_password
     password_bytes = plain_password.encode('utf-8')
-    if len(password_bytes) > 72:
-        pre_hashed = hashlib.sha256(password_bytes).hexdigest()
-        return pwd_context.verify(pre_hashed, hashed_password)
+    pre_hashed = hashlib.sha256(password_bytes).hexdigest()
     
-    return False
+    # Verify the pre-hashed password against the bcrypt hash
+    return pwd_context.verify(pre_hashed, hashed_password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
