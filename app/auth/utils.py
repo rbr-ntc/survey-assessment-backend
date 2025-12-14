@@ -8,19 +8,15 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.config import settings
-
-# Password hashing context
-# Use bcrypt with explicit backend to avoid initialization issues
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
     """
-    Hash password using bcrypt.
+    Hash password using bcrypt directly (bypassing passlib to avoid initialization issues).
     For passwords longer than 72 bytes, pre-hash with SHA-256 + base64 to avoid bcrypt limitation.
     Based on pyca/bcrypt documentation recommendation.
     """
@@ -29,23 +25,28 @@ def hash_password(password: str) -> str:
     
     # Pre-hash with SHA-256, then base64 encode (44 bytes, well under 72 limit)
     # This is the recommended approach from pyca/bcrypt documentation
-    password_hash = base64.b64encode(hashlib.sha256(password_bytes).digest()).decode('utf-8')
+    password_hash = base64.b64encode(hashlib.sha256(password_bytes).digest())
     
-    # Now hash the pre-hashed password with bcrypt
-    return pwd_context.hash(password_hash)
+    # Generate salt and hash using bcrypt directly
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_hash, salt)
+    
+    # Return as string (bcrypt returns bytes)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verify password against hash.
+    Verify password against hash using bcrypt directly.
     Always pre-hash with SHA-256 + base64 to match hash_password behavior.
     """
     # Pre-hash with SHA-256 + base64 to match hash_password
     password_bytes = plain_password.encode('utf-8')
-    pre_hashed = base64.b64encode(hashlib.sha256(password_bytes).digest()).decode('utf-8')
+    pre_hashed = base64.b64encode(hashlib.sha256(password_bytes).digest())
     
     # Verify the pre-hashed password against the bcrypt hash
-    return pwd_context.verify(pre_hashed, hashed_password)
+    hashed_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(pre_hashed, hashed_bytes)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
