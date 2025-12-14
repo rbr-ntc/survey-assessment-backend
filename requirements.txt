@@ -16,6 +16,7 @@ requests
 # PostgreSQL async support
 sqlalchemy[asyncio]>=2.0.0
 asyncpg
+psycopg2-binary  # Required for Alembic migrations compatibility
 alembic
 # Email support
 aiosmtplib

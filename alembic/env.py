@@ -50,6 +50,10 @@ def run_migrations_offline() -> None:
 
     """
     url = get_url()
+    # Convert to sync URL for offline mode (Alembic needs sync URL for offline)
+    if url and url.startswith("postgresql+asyncpg://"):
+        url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -75,16 +79,20 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = get_url()
+    from sqlalchemy.ext.asyncio import create_async_engine
     
-    connectable = AsyncEngine(
-        engine_from_config(
-            configuration,
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
-            future=True,
-        )
+    url = get_url()
+    # Ensure URL uses asyncpg driver
+    if url and not url.startswith("postgresql+asyncpg://"):
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    
+    connectable = create_async_engine(
+        url,
+        poolclass=pool.NullPool,
+        echo=False,
     )
 
     async with connectable.connect() as connection:
