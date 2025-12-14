@@ -3,14 +3,14 @@ Alembic environment configuration for PostgreSQL migrations.
 """
 from logging.config import fileConfig
 
+# Import Base and models for autogenerate
+from app.db_postgres import Base
+from app.models_postgres import (AuthRefreshToken, User,  # noqa
+                                 VerificationCode)
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from alembic import context
-
-# Import Base and models for autogenerate
-from app.db_postgres import Base
-from app.models_postgres import User, AuthRefreshToken, VerificationCode  # noqa
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
