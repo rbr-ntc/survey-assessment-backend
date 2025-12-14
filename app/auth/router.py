@@ -61,7 +61,7 @@ async def get_token(
 # Dependency for getting current user
 async def get_current_user(
     token: Optional[str] = Depends(get_token),
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> User:
     """
     Dependency to get current authenticated user from JWT token.
