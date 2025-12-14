@@ -44,12 +44,17 @@ async def get_token(
     # Try Authorization header first
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
-        return auth_header.split(" ")[1]
+        token = auth_header.split(" ")[1]
+        logger.debug("Token extracted from Authorization header")
+        return token
     
     # Fallback to cookie
     if access_token:
+        logger.debug("Token extracted from access_token cookie")
         return access_token
     
+    # Log for debugging
+    logger.debug(f"No token found. Headers: {dict(request.headers)}, Cookies: {request.cookies}")
     return None
 
 
@@ -446,12 +451,13 @@ async def refresh_token(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(
+async def get_me(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Get current authenticated user.
     """
+    logger.info(f"GET /me - User: {current_user.email}, ID: {current_user.id}")
     return current_user
 
 
