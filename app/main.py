@@ -87,8 +87,9 @@ async def startup_event():
         logger.info("Database initialized successfully")
         
         # Test database connection
-        from app.db_postgres import AsyncSessionLocal
-        async with AsyncSessionLocal() as session:
+        from app.db_postgres import get_session_factory
+        session_factory = get_session_factory()
+        async with session_factory() as session:
             from sqlalchemy import text
             result = await session.execute(text("SELECT 1"))
             logger.info("Database connection test successful")
