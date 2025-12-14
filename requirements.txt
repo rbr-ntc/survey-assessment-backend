@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+motor
+pydantic
+pydantic-settings
+python-dotenv
+openai>=1.50.0
+slowapi
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+pytest
+pytest-asyncio
+httpx
+requests
