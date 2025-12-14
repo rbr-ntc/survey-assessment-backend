@@ -13,30 +13,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-from app.auth.schemas import (
-    MessageResponse,
-    PasswordResetConfirm,
-    PasswordResetRequest,
-    RefreshTokenRequest,
-    TokenResponse,
-    UserLogin,
-    UserRegister,
-    UserResponse,
-    VerificationCodeRequest,
-)
-from app.auth.utils import (
-    create_access_token,
-    create_refresh_token,
-    generate_verification_code,
-    get_verification_code_expiry,
-    hash_password,
-    hash_refresh_token,
-    verify_password,
-    verify_token,
-)
+from app.auth.schemas import (MessageResponse, PasswordResetConfirm,
+                              PasswordResetRequest, RefreshTokenRequest,
+                              TokenResponse, UserLogin, UserRegister,
+                              UserResponse, VerificationCodeRequest)
+from app.auth.utils import (create_access_token, create_refresh_token,
+                            generate_verification_code,
+                            get_verification_code_expiry, hash_password,
+                            hash_refresh_token, verify_password, verify_token)
 from app.db_postgres import get_db
-from app.models_postgres import AuthRefreshToken, User, VerificationCode
 from app.email_service import email_service
+from app.models_postgres import AuthRefreshToken, User, VerificationCode
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -86,56 +73,81 @@ async def register(
     Register new user.
     Creates user account and sends 6-digit verification code to email.
     """
-    # Check if user already exists
-    result = await db.execute(select(User).where(User.email == user_data.email, User.deleted_at.is_(None)))
-    existing_user = result.scalar_one_or_none()
-    
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Пользователь с таким email уже существует",
-        )
-
-    # Create new user
-    hashed_password = hash_password(user_data.password)
-    new_user = User(
-        email=user_data.email,
-        password_hash=hashed_password,
-        name=user_data.name,
-        role="student",
-        email_verified=False,
-    )
-    
-    db.add(new_user)
-    await db.flush()  # Get user ID
-    
-    # Generate verification code
-    code = generate_verification_code()
-    verification_code = VerificationCode(
-        user_id=new_user.id,
-        code=code,
-        code_type="email_verification",
-        expires_at=get_verification_code_expiry(),
-    )
-    
-    db.add(verification_code)
-    await db.commit()
-    
-    # Send verification email (non-blocking - don't fail registration if email fails)
     try:
-        await email_service.send_email(
-            to_email=user_data.email,
-            subject="Подтверждение email - LearnHub LMS",
-            html_body=email_service.render_verification_code_template(code, user_data.name),
+        logger.info(f"Registration attempt for email: {user_data.email}")
+        
+        # Check if user already exists
+        result = await db.execute(select(User).where(User.email == user_data.email, User.deleted_at.is_(None)))
+        existing_user = result.scalar_one_or_none()
+        
+        if existing_user:
+            logger.warning(f"Registration failed: user with email {user_data.email} already exists")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Пользователь с таким email уже существует",
+            )
+
+        # Create new user
+        logger.debug("Hashing password...")
+        hashed_password = hash_password(user_data.password)
+        
+        logger.debug("Creating user object...")
+        new_user = User(
+            email=user_data.email,
+            password_hash=hashed_password,
+            name=user_data.name,
+            role="student",
+            email_verified=False,
         )
+        
+        logger.debug("Adding user to session...")
+        db.add(new_user)
+        await db.flush()  # Get user ID
+        logger.debug(f"User created with ID: {new_user.id}")
+        
+        # Generate verification code
+        logger.debug("Generating verification code...")
+        code = generate_verification_code()
+        verification_code = VerificationCode(
+            user_id=new_user.id,
+            code=code,
+            code_type="email_verification",
+            expires_at=get_verification_code_expiry(),
+        )
+        
+        logger.debug("Adding verification code to session...")
+        db.add(verification_code)
+        
+        logger.debug("Committing transaction...")
+        await db.commit()
+        logger.info(f"User {user_data.email} registered successfully")
+        
+        # Send verification email (non-blocking - don't fail registration if email fails)
+        try:
+            logger.debug("Sending verification email...")
+            await email_service.send_email(
+                to_email=user_data.email,
+                subject="Подтверждение email - LearnHub LMS",
+                html_body=email_service.render_verification_code_template(code, user_data.name),
+            )
+            logger.info(f"Verification email sent to {user_data.email}")
+        except Exception as e:
+            # Log error but don't fail registration
+            logger.error(f"Failed to send verification email to {user_data.email}: {e}", exc_info=True)
+            # Registration still succeeds, user can request code resend
+        
+        return MessageResponse(
+            message="Регистрация успешна. Проверьте email для подтверждения адреса."
+        )
+    except HTTPException:
+        # Re-raise HTTP exceptions (like user already exists)
+        raise
     except Exception as e:
-        # Log error but don't fail registration
-        logger.error(f"Failed to send verification email to {user_data.email}: {e}")
-        # Registration still succeeds, user can request code resend
-    
-    return MessageResponse(
-        message="Регистрация успешна. Проверьте email для подтверждения адреса."
-    )
+        logger.error(f"Registration failed for {user_data.email}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при регистрации: {str(e)}",
+        )
 
 
 @router.post("/verify-email", response_model=MessageResponse)
