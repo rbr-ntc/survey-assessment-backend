@@ -2,9 +2,11 @@
 PostgreSQL database connection and session management for hybrid model.
 MongoDB is used for content, PostgreSQL for users, auth, and transactional data.
 """
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine, AsyncEngine
-from sqlalchemy.orm import DeclarativeBase
 from typing import Optional
+
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_sessionmaker, create_async_engine)
+from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
