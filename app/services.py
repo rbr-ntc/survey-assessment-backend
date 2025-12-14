@@ -197,24 +197,15 @@ async def generate_recommendations_content(
 """
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-    # Determine which API method to use based on reasoning effort
-    # For now, we'll stick to chat completions as it's standard
-    # If the model supports reasoning_effort, it should be passed in a specific way or as part of the model params if applicable.
-    # The original code passed `reasoning={"effort": "medium"}` to `client.responses.create` which seems like a custom or very new API.
-    # We will use standard chat completions but try to respect the settings if possible or fallback to standard.
-
-    # Assuming standard OpenAI API for now as `client.responses.create` is not standard in the python library usually.
-    # However, if it was working before, maybe it's a specific wrapper or version.
-    # Looking at imports: `from openai import AsyncOpenAI`.
-    # Let's use standard chat.completions.create.
-
-    response = await client.chat.completions.create(
+    # Using client.responses.create for gpt-5.2-mini model as originally implemented
+    response = await client.responses.create(
         model=settings.OPENAI_MODEL,
-        messages=[
+        reasoning={"effort": settings.OPENAI_REASONING_EFFORT},
+        input=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        max_tokens=settings.OPENAI_MAX_TOKENS
+        max_output_tokens=settings.OPENAI_MAX_TOKENS
     )
 
-    return response.choices[0].message.content
+    return response.output_text

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_HOUR: int = 1000
     
     # OpenAI
-    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_MODEL: str = "gpt-5.2-mini"
     OPENAI_MAX_TOKENS: int = 4000
     OPENAI_REASONING_EFFORT: str = "medium"  # none, low, medium, high
     

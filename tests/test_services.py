@@ -90,21 +90,35 @@ class TestCalculateScores:
         assert categories["database"]["score"] == 100
         assert categories["api"]["score"] == 100
 
-        # Since only these two categories have max_score > 0, they contribute to the overall score.
-        # But wait, the logic iterates over ALL categories in `CATEGORIES`.
-        # If `category_max_scores[cat]` is 0, score is 0.
-        # `weighted_sum` sums `categories[cat]["score"] * CATEGORIES[cat]['weight']`.
-        # `total_weight` sums `CATEGORIES[cat]['weight']` for ALL categories.
-        # So if we only answer questions for 2 categories, the others will have 0 score, pulling down the average.
-
-        # Let's verify this behavior.
-        # database weight 1.1, api weight 1.1.
-        # score 100 for both.
-        # weighted_sum = 100 * 1.1 + 100 * 1.1 = 220.
-        # total_weight = sum of all weights.
-        # There are 9 categories. Weights:
-        # doc: 1, modeling: 1.2, api: 1.1, db: 1.1, messaging: 1, sys_design: 1.3, sec: 1, analyt: 1.2, comm: 1
-        # Total weight = 1+1.2+1.1+1.1+1+1.3+1+1.2+1 = 9.9
-        # overall = 220 / 9.9 = 22.22
-
         assert overallScore < 30
+
+from unittest.mock import MagicMock, AsyncMock, patch
+from app.services import generate_recommendations_content
+
+class TestGenerateRecommendations:
+    """Tests for generate_recommendations_content"""
+
+    @pytest.mark.asyncio
+    @patch("app.services.AsyncOpenAI")
+    async def test_generate_recommendations(self, mock_openai_cls):
+        """Test generating recommendations with mocked OpenAI"""
+        mock_client = AsyncMock()
+        mock_openai_cls.return_value = mock_client
+
+        # Mock responses.create for new model
+        mock_response = MagicMock()
+        mock_response.output_text = "Test recommendations"
+        mock_client.responses.create.return_value = mock_response
+
+        recommendations = await generate_recommendations_content(
+            user_name="User",
+            user_experience="Junior",
+            level={"level": "Junior"},
+            overallScore=50,
+            strengths=[],
+            weaknesses=[],
+            question_details=[]
+        )
+
+        assert recommendations == "Test recommendations"
+        mock_client.responses.create.assert_called_once()
