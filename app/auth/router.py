@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 
 from app.auth.schemas import (MessageResponse, PasswordResetConfirm,
                               PasswordResetRequest, RefreshTokenRequest,
-                              TokenResponse, UserLogin, UserRegister,
-                              UserResponse, VerificationCodeRequest)
+                              ResendVerificationCodeRequest, TokenResponse,
+                              UserLogin, UserRegister, UserResponse,
+                              VerificationCodeRequest)
 from app.auth.utils import (create_access_token, create_refresh_token,
                             generate_verification_code,
                             get_verification_code_expiry, hash_password,
@@ -222,6 +223,62 @@ async def verify_email(
     return MessageResponse(message="Email успешно подтвержден")
 
 
+@router.post("/resend-verification-code", response_model=MessageResponse)
+async def resend_verification_code(
+    request: ResendVerificationCodeRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Resend verification code to user's email.
+    Useful if user didn't receive the code or it expired.
+    """
+    # Find user
+    result = await db.execute(
+        select(User).where(User.email == request.email, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        # Don't reveal if user exists or not (security best practice)
+        return MessageResponse(
+            message="Если email зарегистрирован, код подтверждения отправлен на почту."
+        )
+    
+    # If email already verified, no need to send code
+    if user.email_verified:
+        return MessageResponse(
+            message="Email уже подтвержден. Вы можете войти в систему."
+        )
+    
+    # Generate new verification code
+    code = generate_verification_code()
+    verification_code = VerificationCode(
+        user_id=user.id,
+        code=code,
+        code_type="email_verification",
+        expires_at=get_verification_code_expiry(),
+    )
+    
+    db.add(verification_code)
+    await db.commit()
+    
+    # Send verification email (non-blocking)
+    try:
+        await email_service.send_email(
+            to_email=user.email,
+            subject="Код подтверждения email - LearnHub LMS",
+            html_body=email_service.render_verification_code_template(code, user.name),
+        )
+        logger.info(f"Verification code resent to {user.email}")
+    except Exception as e:
+        logger.error(f"Failed to send verification email to {user.email}: {e}", exc_info=True)
+        # Still return success message for security (don't reveal email issues)
+    
+    return MessageResponse(
+        message="Если email зарегистрирован, код подтверждения отправлен на почту."
+    )
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(
     user_data: UserLogin,
@@ -250,11 +307,17 @@ async def login(
         )
     
     # Check if email is verified
+    # Note: For development, we allow login without verification, but in production
+    # you might want to enforce this. Comment out the check below to allow unverified logins.
     if not user.email_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Email не подтвержден. Проверьте почту для кода подтверждения.",
-        )
+        # Instead of blocking, return a message suggesting to verify email
+        # But still allow login for better UX (user can verify later)
+        logger.warning(f"User {user.email} logged in without verified email")
+        # Uncomment below to enforce email verification:
+        # raise HTTPException(
+        #     status_code=status.HTTP_403_FORBIDDEN,
+        #     detail="Email не подтвержден. Проверьте почту для кода подтверждения или запросите новый код.",
+        # )
     
     # Create tokens
     access_token = create_access_token(

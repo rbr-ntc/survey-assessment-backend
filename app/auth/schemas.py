@@ -34,6 +34,11 @@ class VerificationCodeRequest(BaseModel):
     code: str = Field(..., min_length=6, max_length=6, pattern=r'^\d{6}$')
 
 
+class ResendVerificationCodeRequest(BaseModel):
+    """Schema for resending verification code"""
+    email: EmailStr
+
+
 class PasswordResetRequest(BaseModel):
     """Schema for password reset request"""
     email: EmailStr
