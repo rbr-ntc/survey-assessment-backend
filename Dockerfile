@@ -25,4 +25,5 @@ COPY ./app ./app
 ENV PORT=8000
 EXPOSE $PORT
 
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} 
+# Используем shell форму для правильного расширения переменной PORT
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"] 
