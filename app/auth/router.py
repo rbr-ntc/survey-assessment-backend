@@ -2,6 +2,7 @@
 Authentication router with all auth endpoints.
 Includes registration, login, email verification, password reset with 6-digit codes.
 """
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -9,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from app.auth.schemas import (
     MessageResponse,
