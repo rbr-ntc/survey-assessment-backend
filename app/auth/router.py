@@ -76,6 +76,15 @@ async def register(
     try:
         logger.info(f"Registration attempt for email: {user_data.email}")
         
+        # Verify database connection
+        from app.config import settings
+        if not settings.POSTGRES_URL:
+            logger.error("POSTGRES_URL is not configured!")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database configuration error",
+            )
+        
         # Check if user already exists
         result = await db.execute(select(User).where(User.email == user_data.email, User.deleted_at.is_(None)))
         existing_user = result.scalar_one_or_none()
