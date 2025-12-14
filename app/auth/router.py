@@ -33,7 +33,7 @@ from app.auth.utils import (
 )
 from app.db_postgres import get_db
 from app.models_postgres import AuthRefreshToken, User, VerificationCode
-from app.services.email_service import email_service
+from app.email_service import email_service
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
