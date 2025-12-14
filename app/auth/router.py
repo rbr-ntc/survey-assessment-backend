@@ -4,9 +4,9 @@ Includes registration, login, email verification, password reset with 6-digit co
 """
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,23 +28,53 @@ from app.models_postgres import AuthRefreshToken, User, VerificationCode
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-# OAuth2 scheme for token extraction
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+# OAuth2 scheme for token extraction (fallback for Authorization header)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+
+
+# Dependency to extract token from header or cookie
+async def get_token(
+    request: Request,
+    authorization: Optional[str] = None,
+    access_token: Optional[str] = Cookie(None),
+) -> Optional[str]:
+    """
+    Extract token from Authorization header or access_token cookie.
+    Priority: Authorization header > Cookie
+    """
+    # Try Authorization header first
+    if authorization and authorization.startswith("Bearer "):
+        return authorization.split(" ")[1]
+    
+    # Fallback to cookie
+    if access_token:
+        return access_token
+    
+    # Try to get from request headers directly
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ")[1]
+    
+    return None
 
 
 # Dependency for getting current user
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    token: Optional[str] = Depends(get_token),
+    db: Annotated[AsyncSession, Depends(get_db)] = Depends(get_db),
 ) -> User:
     """
     Dependency to get current authenticated user from JWT token.
+    Supports both Authorization header and httpOnly cookie.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Не удалось подтвердить учетные данные",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    if not token:
+        raise credentials_exception
     
     payload = verify_token(token, token_type="access")
     if not payload:
