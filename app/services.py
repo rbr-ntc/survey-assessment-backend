@@ -1,10 +1,11 @@
 import os
 from typing import Dict, List, Optional, Tuple
 
+from openai import AsyncOpenAI, OpenAIError
+
 from app.config import settings
 from app.models import QuestionDetail
 from app.utils import CATEGORIES, get_level
-from openai import AsyncOpenAI, OpenAIError
 
 
 def calculate_scores(questions: List[Dict], answers: Dict[str, str]) -> Tuple[int, Dict, Dict, List, List, List[QuestionDetail]]:
@@ -198,13 +199,12 @@ async def generate_recommendations_content(
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
     # Using Responses API with GPT-5 family models (gpt-5.1, gpt-5-mini, gpt-5-nano)
+    # Format: instructions (system prompt) + input (user prompt as string)
     response = await client.responses.create(
         model=settings.OPENAI_MODEL,
+        instructions=system_prompt,
+        input=prompt,
         reasoning={"effort": settings.OPENAI_REASONING_EFFORT},
-        input=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ],
         max_output_tokens=settings.OPENAI_MAX_TOKENS
     )
 
