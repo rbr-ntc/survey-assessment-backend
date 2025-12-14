@@ -51,7 +51,7 @@ Railway автоматически задеплоит при push в main (уж�
 
 После успешного деплоя:
 
-**Через Railway CLI:**
+**Через Railway CLI (без UI Shell):**
 ```bash
 cd /Users/mistadrumma/develop/cursor/survey-assessment-backend
 
@@ -62,12 +62,18 @@ railway service  # покажет текущий сервис
 railway link  # выберите backend сервис
 
 # Примените миграции
-railway run alembic upgrade head
+# Важно: `railway run` запускает команду ЛОКАЛЬНО, просто подставляя переменные окружения из Railway.
+# Поэтому Alembic должен быть установлен локально:
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+railway run python -m alembic upgrade head
 ```
 
-**Или через Railway Shell:**
-1. Railway Dashboard → ваш сервис → **Shell**
-2. Выполните: `alembic upgrade head`
+**Про “Shell” в Railway UI:**
+- В Railway UI “Shell/Console/Terminal” может **не отображаться** (это нормально).
+- Если пункта “Shell” нет — используйте Railway CLI способ выше.
 
 ### 6. Проверить деплой
 
