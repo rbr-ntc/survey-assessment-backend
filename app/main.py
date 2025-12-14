@@ -70,7 +70,7 @@ async def health_check():
 app.include_router(questions.router)
 app.include_router(results.router)
 app.include_router(recommendations.router)
-app.include_router(auth_router.router)
+app.include_router(auth_router)
 
 
 @app.on_event("startup")
