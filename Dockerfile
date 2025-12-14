@@ -18,6 +18,14 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Копируем alembic конфиг и миграции
+COPY alembic.ini ./alembic.ini
+COPY alembic ./alembic
+
+# Startup script (runs migrations + starts uvicorn)
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 # Копируем код приложения
 COPY ./app ./app
 
@@ -26,4 +34,4 @@ ENV PORT=8000
 EXPOSE $PORT
 
 # Используем shell форму для правильного расширения переменной PORT
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"] 
+CMD ["sh", "-c", "./start.sh"] 
