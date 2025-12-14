@@ -13,3 +13,11 @@ pytest
 pytest-asyncio
 httpx
 requests
+# PostgreSQL async support
+sqlalchemy[asyncio]>=2.0.0
+asyncpg
+alembic
+# Email support
+aiosmtplib
+jinja2
+email-validator

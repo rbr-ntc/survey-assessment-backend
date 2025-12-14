@@ -2,7 +2,9 @@ import logging
 import os
 import time
 
+from app.auth import router as auth_router
 from app.config import settings
+from app.db_postgres import init_db
 from app.routers import questions, recommendations, results
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -64,6 +66,38 @@ async def health_check():
         "environment": "production"
     }
 
+# Include routers
 app.include_router(questions.router)
 app.include_router(results.router)
 app.include_router(recommendations.router)
+app.include_router(auth_router.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup"""
+    try:
+        # Run migrations automatically (optional - can be done manually via Railway CLI)
+        # Uncomment if you want auto-migrations on startup
+        # try:
+        #     from alembic.config import Config
+        #     from alembic import command
+        #     alembic_cfg = Config("alembic.ini")
+        #     command.upgrade(alembic_cfg, "head")
+        #     logger.info("Migrations applied successfully")
+        # except Exception as migration_error:
+        #     logger.warning(f"Migrations not applied (this is OK if done manually): {migration_error}")
+        
+        # Initialize database (create tables if not exist)
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connections on shutdown"""
+    from app.db_postgres import close_db
+    await close_db()
+    logger.info("Database connections closed")

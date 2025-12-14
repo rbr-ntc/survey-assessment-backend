@@ -5,22 +5,25 @@
 ### Через Railway CLI:
 
 1. **Установите Railway CLI:**
+
    ```bash
    npm i -g @railway/cli
    railway login
    ```
 
 2. **Подключите проект:**
+
    ```bash
    cd survey-assessment-backend
    railway link
    ```
 
 3. **Импортируйте вопросы:**
+
    ```bash
    # Установите переменную MONGO_URL из Railway
    railway variables
-   
+
    # Или импортируйте напрямую через Railway shell
    railway run python import_questions.py
    ```
@@ -28,11 +31,13 @@
 ### Или через MongoDB Compass:
 
 1. **Получите MONGO_URL из Railway:**
+
    - Railway Dashboard → Ваш проект → MongoDB сервис
    - Settings → Variables → MONGO_URL
    - Скопируйте строку подключения
 
 2. **Откройте MongoDB Compass:**
+
    - Вставьте MONGO_URL
    - Подключитесь
 
@@ -66,4 +71,3 @@ curl -H "x-api-key: YOUR_API_KEY" \
 ```
 
 Должен вернуться массив вопросов, а не 404!
-

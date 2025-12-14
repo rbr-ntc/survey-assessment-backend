@@ -1,6 +1,7 @@
 # Импорт вопросов в MongoDB на Railway
 
 ## Проблема
+
 После деплоя на Railway MongoDB создается пустой, и вопросы нужно импортировать вручную.
 
 ## Решение
@@ -8,20 +9,23 @@
 ### Вариант 1: Через Railway MongoDB Shell (рекомендуется)
 
 1. **Откройте Railway Dashboard:**
+
    - Зайдите на [railway.app](https://railway.app)
    - Откройте ваш проект
    - Найдите сервис MongoDB
 
 2. **Откройте MongoDB Shell:**
+
    - В настройках MongoDB сервиса найдите "Connect"
    - Скопируйте строку подключения (MONGO_URL)
    - Или используйте встроенный MongoDB Shell в Railway
 
 3. **Подключитесь к MongoDB:**
+
    ```bash
    # Если используете Railway CLI
    railway connect mongodb
-   
+
    # Или используйте mongoimport напрямую с MONGO_URL
    ```
 
@@ -38,10 +42,12 @@
 ### Вариант 2: Через MongoDB Compass или другой клиент
 
 1. **Получите MONGO_URL из Railway:**
+
    - Settings → Variables → MONGO_URL
    - Скопируйте строку подключения
 
 2. **Подключитесь через MongoDB Compass:**
+
    - Вставьте MONGO_URL
    - Подключитесь к базе данных
 
@@ -55,22 +61,23 @@
 ### Вариант 3: Через скрипт Python (если есть доступ к контейнеру)
 
 1. **Создайте временный скрипт импорта:**
+
    ```python
    import json
    import os
    from motor.motor_asyncio import AsyncIOMotorClient
-   
+
    MONGO_URL = os.environ.get("MONGO_URL")
    client = AsyncIOMotorClient(MONGO_URL)
    db = client.assessment
-   
+
    async def import_questions():
        with open("improved-test-questions.json", "r") as f:
            questions = json.load(f)
-       
+
        await db.questions.insert_many(questions)
        print(f"Imported {len(questions)} questions")
-   
+
    import asyncio
    asyncio.run(import_questions())
    ```
@@ -83,12 +90,14 @@
 ### Вариант 4: Через Railway CLI (самый простой)
 
 1. **Установите Railway CLI:**
+
    ```bash
    npm i -g @railway/cli
    railway login
    ```
 
 2. **Подключитесь к MongoDB:**
+
    ```bash
    cd survey-assessment-backend
    railway link  # Подключите проект
@@ -96,10 +105,11 @@
    ```
 
 3. **Импортируйте вопросы:**
+
    ```bash
    # В MongoDB shell
    use assessment
-   
+
    # Импортируйте через mongoimport
    # (нужно выйти из shell и использовать mongoimport)
    ```
@@ -109,6 +119,7 @@
 После импорта проверьте, что вопросы загружены:
 
 1. **Через API:**
+
    ```bash
    curl -H "x-api-key: YOUR_API_KEY" \
      https://your-backend.railway.app/questions
@@ -123,6 +134,7 @@
 ## Структура данных
 
 Файл `improved-test-questions.json` должен содержать массив объектов вопросов:
+
 ```json
 [
   {
@@ -142,4 +154,3 @@
 - Коллекция должна называться `questions`
 - Данные должны быть в формате JSON Array
 - После импорта перезапустите backend сервис (если нужно)
-
