@@ -118,12 +118,17 @@ async def register(
     db.add(verification_code)
     await db.commit()
     
-    # Send verification email
-    await email_service.send_email(
-        to_email=user_data.email,
-        subject="Подтверждение email - LearnHub LMS",
-        html_body=email_service.render_verification_code_template(code, user_data.name),
-    )
+    # Send verification email (non-blocking - don't fail registration if email fails)
+    try:
+        await email_service.send_email(
+            to_email=user_data.email,
+            subject="Подтверждение email - LearnHub LMS",
+            html_body=email_service.render_verification_code_template(code, user_data.name),
+        )
+    except Exception as e:
+        # Log error but don't fail registration
+        logger.error(f"Failed to send verification email to {user_data.email}: {e}")
+        # Registration still succeeds, user can request code resend
     
     return MessageResponse(
         message="Регистрация успешна. Проверьте email для подтверждения адреса."
@@ -167,12 +172,15 @@ async def verify_email(
     
     await db.commit()
     
-    # Send welcome email
-    await email_service.send_email(
-        to_email=user.email,
-        subject="Добро пожаловать в LearnHub LMS!",
-        html_body=email_service.render_welcome_template(user.name),
-    )
+    # Send welcome email (non-blocking)
+    try:
+        await email_service.send_email(
+            to_email=user.email,
+            subject="Добро пожаловать в LearnHub LMS!",
+            html_body=email_service.render_welcome_template(user.name),
+        )
+    except Exception as e:
+        logger.error(f"Failed to send welcome email to {user.email}: {e}")
     
     return MessageResponse(message="Email успешно подтвержден")
 
@@ -354,12 +362,15 @@ async def forgot_password(
     db.add(verification_code)
     await db.commit()
     
-    # Send password reset email
-    await email_service.send_email(
-        to_email=user.email,
-        subject="Восстановление пароля - LearnHub LMS",
-        html_body=email_service.render_password_reset_template(code, user.name),
-    )
+    # Send password reset email (non-blocking)
+    try:
+        await email_service.send_email(
+            to_email=user.email,
+            subject="Восстановление пароля - LearnHub LMS",
+            html_body=email_service.render_password_reset_template(code, user.name),
+        )
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {user.email}: {e}")
     
     return MessageResponse(
         message="Если пользователь с таким email существует, код восстановления отправлен на почту."
