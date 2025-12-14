@@ -45,16 +45,17 @@ async def get_token(
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
-        logger.debug("Token extracted from Authorization header")
+        logger.info("Token extracted from Authorization header")
         return token
     
     # Fallback to cookie
     if access_token:
-        logger.debug("Token extracted from access_token cookie")
+        logger.info("Token extracted from access_token cookie")
         return access_token
     
-    # Log for debugging
-    logger.debug(f"No token found. Headers: {dict(request.headers)}, Cookies: {request.cookies}")
+    # Log for debugging - show what cookies are available
+    all_cookies = dict(request.cookies)
+    logger.warning(f"No token found in /me request. Available cookies: {list(all_cookies.keys())}, Authorization header: {auth_header}")
     return None
 
 
