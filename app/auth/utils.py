@@ -17,13 +17,35 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    """Hash password using bcrypt"""
+    """
+    Hash password using bcrypt.
+    For passwords longer than 72 bytes, pre-hash with SHA-256 to avoid bcrypt limitation.
+    """
+    # Bcrypt has a 72-byte limit. Pre-hash long passwords with SHA-256
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        # Pre-hash with SHA-256 to get fixed 32-byte output
+        password = hashlib.sha256(password_bytes).hexdigest()
+    
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """
+    Verify password against hash.
+    Handles both regular bcrypt hashes and pre-hashed (SHA-256) passwords.
+    """
+    # Try direct verification first (for passwords <= 72 bytes)
+    if pwd_context.verify(plain_password, hashed_password):
+        return True
+    
+    # If direct verification fails and password is long, try pre-hashed version
+    password_bytes = plain_password.encode('utf-8')
+    if len(password_bytes) > 72:
+        pre_hashed = hashlib.sha256(password_bytes).hexdigest()
+        return pwd_context.verify(pre_hashed, hashed_password)
+    
+    return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
