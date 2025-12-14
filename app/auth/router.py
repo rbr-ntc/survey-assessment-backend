@@ -153,9 +153,18 @@ async def register(
         raise
     except Exception as e:
         logger.error(f"Registration failed for {user_data.email}: {e}", exc_info=True)
+        # Don't expose internal error details to user, but log them
+        error_detail = "Ошибка при регистрации. Попробуйте позже или обратитесь в поддержку."
+        error_str = str(e).lower()
+        if "duplicate key" in error_str or "already exists" in error_str:
+            error_detail = "Пользователь с таким email уже существует"
+        elif "connection" in error_str or "database" in error_str or "postgres" in error_str:
+            error_detail = "Ошибка подключения к базе данных"
+        elif "timeout" in error_str:
+            error_detail = "Превышено время ожидания. Попробуйте позже."
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при регистрации: {str(e)}",
+            detail=error_detail,
         )
 
 
