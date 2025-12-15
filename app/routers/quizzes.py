@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
-from app.auth.router import get_current_user_dependency
+from app.auth.router import get_current_user
 from app.db import db
 from app.db_postgres import get_db
 from app.models import (
@@ -125,7 +125,7 @@ async def get_quiz_questions(quiz_id: str):
 async def start_quiz(
     quiz_id: str,
     request: StartQuizRequest,
-    current_user: User = Depends(get_current_user_dependency),
+    current_user: User = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db),
 ):
     """
@@ -216,7 +216,7 @@ async def submit_quiz(
     quiz_id: str,
     attempt_id: str,
     request: SubmitQuizRequest,
-    current_user: User = Depends(get_current_user_dependency),
+    current_user: User = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db),
 ):
     """
@@ -367,7 +367,7 @@ async def submit_quiz(
 async def get_quiz_attempt(
     quiz_id: str,
     attempt_id: str,
-    current_user: User = Depends(get_current_user_dependency),
+    current_user: User = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db),
 ):
     """
