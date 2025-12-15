@@ -26,18 +26,37 @@ def calculate_scores(questions: List[Dict], answers: Dict[str, str]) -> Tuple[in
     for q in questions:
         qid = q['id']
         cat = q['category']
-        max_score = max(q.get('weights', {}).values()) if 'weights' in q else 5
+
+        weights = q.get('weights', {})
+        if weights:
+            # Optimization: Find max score and correct answer value in one pass
+            best_answer_item = max(weights.items(), key=lambda x: x[1])
+            correct_answer_value = best_answer_item[0]
+            max_score = best_answer_item[1]
+        else:
+            max_score = 5
+            correct_answer_value = ""
+
         category_max_scores[cat] += max_score
         answer = answers.get(qid)
 
         if answer:
-            score = q.get('weights', {}).get(answer, 0) if 'weights' in q else 0
+            score = weights.get(answer, 0)
             category_scores[cat] += score
 
-            # Collect details for each question
-            user_answer_text = next((opt['text'] for opt in q['options'] if opt['value'] == answer), "")
-            correct_answer_value = max(q.get('weights', {}).items(), key=lambda x: x[1])[0] if q.get('weights') else ""
-            correct_answer_text = next((opt['text'] for opt in q['options'] if opt['value'] == correct_answer_value), "")
+            # Optimization: Avoid iterating options multiple times
+            user_answer_text = ""
+            correct_answer_text = ""
+
+            # Linear scan once to find both texts
+            for opt in q['options']:
+                val = opt['value']
+                if val == answer:
+                    user_answer_text = opt['text']
+                if val == correct_answer_value:
+                    correct_answer_text = opt['text']
+                if user_answer_text and correct_answer_text:
+                    break
 
             question_detail = {
                 "question_id": qid,
