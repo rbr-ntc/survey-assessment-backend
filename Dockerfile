@@ -22,6 +22,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 
+# Копируем скрипты миграции
+COPY scripts ./scripts
+
 # Startup script (runs migrations + starts uvicorn)
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh

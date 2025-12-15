@@ -27,5 +27,13 @@ else
   echo "[start] POSTGRES_URL/DATABASE_URL not set; skipping migrations"
 fi
 
+# Run MongoDB quiz_content migration (idempotent - checks if document exists)
+if [ -n "${MONGO_URL:-}" ] && [ -f "scripts/migrate_quiz_content.py" ]; then
+  echo "[start] running MongoDB quiz_content migration..."
+  python scripts/migrate_quiz_content.py || echo "[start] MongoDB migration failed or already done (this is OK)"
+else
+  echo "[start] MONGO_URL not set or migration script not found; skipping MongoDB migration"
+fi
+
 echo "[start] starting uvicorn on port ${PORT:-8000}..."
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
