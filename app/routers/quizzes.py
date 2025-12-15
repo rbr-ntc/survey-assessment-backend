@@ -10,18 +10,10 @@ from uuid import UUID
 from app.auth.router import get_current_user
 from app.db import db
 from app.db_postgres import get_db
-from app.models import (
-    CategoryConfig,
-    LevelConfig,
-    Question,
-    QuizAttemptResponse,
-    QuizContent,
-    QuizResponse,
-    QuizSettings,
-    StartQuizRequest,
-    StartQuizResponse,
-    SubmitQuizRequest,
-)
+from app.models import (CategoryConfig, LevelConfig, Question,
+                        QuizAttemptResponse, QuizContent, QuizResponse,
+                        QuizSettings, StartQuizRequest, StartQuizResponse,
+                        SubmitQuizRequest)
 from app.models_postgres import QuizAttempt, User
 from app.services import calculate_scores
 from app.utils import CATEGORIES, get_level
@@ -124,7 +116,6 @@ async def get_quiz_questions(quiz_id: str):
 @router.post("/{quiz_id}/start", response_model=StartQuizResponse)
 async def start_quiz(
     quiz_id: str,
-    request: StartQuizRequest,
     current_user: User = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db),
 ):
