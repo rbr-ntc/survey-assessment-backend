@@ -93,7 +93,7 @@ class QuizSettings(BaseModel):
 
 class QuizContent(BaseModel):
     """Quiz content model (stored in MongoDB)"""
-    _id: str = Field(..., alias="_id", description="Quiz ID (e.g., 'quiz:system-analyst-assessment')")
+    id: str = Field(..., alias="_id", description="Quiz ID (e.g., 'quiz:system-analyst-assessment')")
     type: str = Field(..., description="Type: assessment | quiz | practice")
     title: str
     description: str
@@ -110,6 +110,7 @@ class QuizContent(BaseModel):
 
     class Config:
         populate_by_name = True
+        allow_population_by_field_name = True
 
 
 class QuizResponse(BaseModel):
