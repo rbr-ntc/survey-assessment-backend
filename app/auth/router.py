@@ -24,6 +24,7 @@ from app.auth.utils import (create_access_token, create_refresh_token,
                             hash_refresh_token, verify_password, verify_token)
 from app.db_postgres import get_db
 from app.email_service import email_service
+from app.limiter import limiter
 from app.models_postgres import AuthRefreshToken, User, VerificationCode
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -97,7 +98,9 @@ async def get_current_user(
 
 
 @router.post("/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def register(
+    request: Request,
     user_data: UserRegister,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -205,8 +208,10 @@ async def register(
 
 
 @router.post("/verify-email", response_model=MessageResponse)
+@limiter.limit("10/minute")
 async def verify_email(
-    request: VerificationCodeRequest,
+    request: Request,
+    verification_request: VerificationCodeRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
@@ -216,7 +221,7 @@ async def verify_email(
     result = await db.execute(
         select(VerificationCode)
         .where(
-            VerificationCode.code == request.code,
+            VerificationCode.code == verification_request.code,
             VerificationCode.code_type == "email_verification",
             VerificationCode.used_at.is_(None),
             VerificationCode.deleted_at.is_(None),
@@ -255,8 +260,10 @@ async def verify_email(
 
 
 @router.post("/resend-verification-code", response_model=MessageResponse)
+@limiter.limit("3/minute")
 async def resend_verification_code(
-    request: ResendVerificationCodeRequest,
+    request: Request,
+    resend_request: ResendVerificationCodeRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
@@ -265,7 +272,7 @@ async def resend_verification_code(
     """
     # Find user
     result = await db.execute(
-        select(User).where(User.email == request.email, User.deleted_at.is_(None))
+        select(User).where(User.email == resend_request.email, User.deleted_at.is_(None))
     )
     user = result.scalar_one_or_none()
     
@@ -311,7 +318,9 @@ async def resend_verification_code(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     user_data: UserLogin,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -463,8 +472,10 @@ async def get_me(
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("3/minute")
 async def forgot_password(
-    request: PasswordResetRequest,
+    request: Request,
+    password_request: PasswordResetRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
@@ -472,7 +483,7 @@ async def forgot_password(
     """
     # Find user
     result = await db.execute(
-        select(User).where(User.email == request.email, User.deleted_at.is_(None))
+        select(User).where(User.email == password_request.email, User.deleted_at.is_(None))
     )
     user = result.scalar_one_or_none()
     
@@ -510,8 +521,10 @@ async def forgot_password(
 
 
 @router.post("/reset-password", response_model=MessageResponse)
+@limiter.limit("5/minute")
 async def reset_password(
-    request: PasswordResetConfirm,
+    request: Request,
+    reset_request: PasswordResetConfirm,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
@@ -521,7 +534,7 @@ async def reset_password(
     result = await db.execute(
         select(VerificationCode)
         .where(
-            VerificationCode.code == request.code,
+            VerificationCode.code == reset_request.code,
             VerificationCode.code_type == "password_reset",
             VerificationCode.used_at.is_(None),
             VerificationCode.deleted_at.is_(None),
@@ -540,7 +553,7 @@ async def reset_password(
     user_result = await db.execute(
         select(User).where(
             User.id == verification.user_id,
-            User.email == request.email,
+            User.email == reset_request.email,
             User.deleted_at.is_(None),
         )
     )

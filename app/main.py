@@ -5,9 +5,13 @@ import time
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.auth import router as auth_router
 from app.config import settings
+from app.limiter import limiter
 from app.db_postgres import init_db
 from app.routers import questions, quizzes, recommendations, results
 
@@ -26,7 +30,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Set up Rate Limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 # Добавляем middleware используя декораторы
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.perf_counter()
