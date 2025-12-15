@@ -195,10 +195,13 @@ async def start_quiz(
 
     await db_session.commit()
 
+    # Convert questions to Question models for validation
+    question_models = [Question(**q) for q in sorted_questions]
+
     return StartQuizResponse(
         attempt_id=str(attempt.id),
         quiz=quiz_response,
-        questions=sorted_questions,
+        questions=question_models,
     )
 
 
