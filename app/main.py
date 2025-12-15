@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth import router as auth_router
 from app.config import settings
 from app.db_postgres import init_db
-from app.routers import questions, recommendations, results
+from app.routers import questions, quizzes, recommendations, results
 
 load_dotenv()
 
@@ -71,6 +71,7 @@ async def health_check():
 app.include_router(questions.router)
 app.include_router(results.router)
 app.include_router(recommendations.router)
+app.include_router(quizzes.router)
 app.include_router(auth_router)
 
 

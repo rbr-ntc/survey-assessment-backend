@@ -171,3 +171,125 @@ class VerificationCode(Base):
     def __repr__(self):
         return f"<VerificationCode(id={self.id}, user_id={self.user_id}, code_type={self.code_type}, expires_at={self.expires_at})>"
 
+
+class QuizAttempt(Base):
+    """
+    Quiz attempt model - PostgreSQL
+    Stores quiz attempts and results linked to users.
+    """
+    __tablename__ = "quiz_attempts"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid7,
+        index=True,
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    quiz_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
+        comment="Reference to quiz_content._id in MongoDB (e.g., 'quiz:system-analyst-assessment')",
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="in_progress",
+        index=True,
+        comment="in_progress | completed | abandoned",
+    )
+
+    score: Mapped[Optional[int]] = mapped_column(
+        nullable=True,
+        comment="Overall score (0-100)",
+    )
+
+    level: Mapped[Optional[str]] = mapped_column(
+        String(50),
+        nullable=True,
+        comment="Level determined from score (e.g., 'junior', 'middle', 'senior')",
+    )
+
+    passed: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="Whether the quiz was passed (score >= passing_score)",
+    )
+
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        index=True,
+    )
+
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
+    time_spent_seconds: Mapped[Optional[int]] = mapped_column(
+        nullable=True,
+        comment="Time spent on quiz in seconds",
+    )
+
+    # Category scores and analysis (JSONB for flexibility)
+    category_scores: Mapped[Optional[dict]] = mapped_column(
+        type_=Text,
+        nullable=True,
+        comment="JSON: category scores as {category: score}",
+    )
+
+    strengths: Mapped[Optional[dict]] = mapped_column(
+        type_=Text,
+        nullable=True,
+        comment="JSON: list of strong categories",
+    )
+
+    weaknesses: Mapped[Optional[dict]] = mapped_column(
+        type_=Text,
+        nullable=True,
+        comment="JSON: list of weak categories",
+    )
+
+    # Link to detailed results in MongoDB (optional)
+    result_content_id: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="Reference to MongoDB results collection _id for detailed results",
+    )
+
+    # Audit fields
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")
+
+    def __repr__(self):
+        return f"<QuizAttempt(id={self.id}, user_id={self.user_id}, quiz_id={self.quiz_id}, status={self.status}, score={self.score})>"
+
