@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from typing import Dict, List
 
+from app.cache import get_cached_questions
 from app.db import db
 from app.deps import verify_api_key
 from app.models import QuickTestRequest, Result, ResultWithId, SubmitRequest
@@ -40,8 +41,8 @@ async def generate_and_save_recommendations(result_id, user, level, overallScore
 
 @router.post("/results", response_model=ResultWithId, dependencies=[Depends(verify_api_key)])
 async def submit_results(submit: SubmitRequest, background_tasks: BackgroundTasks):
-    # Получаем вопросы из MongoDB
-    questions = await db.questions.find({}, {"_id": 0}).to_list(length=None)
+    # Получаем вопросы (из кэша)
+    questions = await get_cached_questions()
     answers = submit.answers
     user = submit.user.dict() if hasattr(submit.user, 'dict') else dict(submit.user)
 
@@ -125,8 +126,8 @@ async def quick_test(
     test_type: "expert", "intermediate", "beginner", "random"
     """
     
-    # Получаем все вопросы
-    questions = await db.questions.find({}, {"_id": 0}).to_list(length=None)
+    # Получаем все вопросы (из кэша)
+    questions = await get_cached_questions()
     
     if not questions:
         raise HTTPException(status_code=404, detail="Questions not found")

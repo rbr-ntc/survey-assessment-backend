@@ -42,6 +42,7 @@ app.dependency_overrides[verify_api_key] = override_verify_api_key
 
 client = TestClient(app)
 
+@patch("app.cache.db", mock_db)
 @patch("app.routers.results.db", mock_db)
 @patch("app.routers.results.generate_and_save_recommendations")
 def test_submit_results(mock_bg_task):
